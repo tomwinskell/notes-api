@@ -17,6 +17,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  // route used to create a user, tested and function
+  // TODO: password encryption
   @Post()
   @UsePipes(new ValidationPipe())
   create(@Body() createUserDto: CreateUserDto) {

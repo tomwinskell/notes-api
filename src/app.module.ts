@@ -14,18 +14,17 @@ import typeorm from './config/typeorm.config';
       isGlobal: true,
       load: [typeorm],
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL,
-      ssl: true,
-      entities: [User],
-      synchronize: false, // disable in production
-      logging: true, // logs database transactions
-    }),
     TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) =>
-        configService.get('typeorm'),
+      useFactory: async (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get<string>('DATABASE_URL'),
+        ssl: true,
+        entities: [User],
+        synchronize: true, // disable in production
+        logging: true,
+      }),
     }),
     UsersModule,
     AuthModule,
