@@ -1,28 +1,23 @@
 module.exports = {
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    project: 'tsconfig.json',
-    tsconfigRootDir: __dirname,
-    sourceType: 'module',
-  },
-  plugins: ['@typescript-eslint/eslint-plugin'],
   extends: [
-    'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
     'alloy',
+    'alloy/react',
     'alloy/typescript',
   ],
-  root: true,
   env: {
+    // Your environments (which contains several predefined global variables)
+    // browser: true,
     node: true,
-    jest: true,
+    // mocha: true,
+    // jest: true,
+    // jquery: true
   },
-  ignorePatterns: ['.eslintrc.js'],
+  globals: {
+    // Your global variables (setting to false means it's not allowed to be reassigned)
+    //
+    // myGlobal: false
+  },
   rules: {
-    '@typescript-eslint/interface-name-prefix': 'off',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/explicit-member-accessibility': 'off',
   },
 };

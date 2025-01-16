@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { Public } from 'src/public';
 // import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('user')
@@ -19,6 +20,7 @@ export class UserController {
 
   // route used to create a user, tested and function
   // TODO: password encryption
+  @Public()
   @Post()
   @UsePipes(new ValidationPipe())
   create(@Body() createUserDto: CreateUserDto) {
