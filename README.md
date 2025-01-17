@@ -22,7 +22,6 @@ This is the first full-stack application I'm building from scratch. I've used no
 
 ### Installation
 
-- Frontend - Vite with React / TypeScript
 - API - NestJS
 
 ### Functionality
@@ -75,7 +74,7 @@ Site not yet live, under construction
 
 ### What I learned
 
-- Full calendar of tasks implemented in FrontEnd readme file: [https://github.com/tomwinskell/notes-frontend](https://github.com/tomwinskell/notes-frontend)
+- Full calendar / list of tasks implemented in FrontEnd readme file: [https://github.com/tomwinskell/notes-frontend](https://github.com/tomwinskell/notes-frontend)
 
 ### Continued development
 
