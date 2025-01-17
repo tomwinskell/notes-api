@@ -10,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 export class UserService {
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private userRepository: Repository<User>,
   ) {}
 
   // service to create a new user, using user dto for validation, hash password with bcrypt
@@ -26,7 +26,7 @@ export class UserService {
       user.password = await bcrypt.hash(createUserDto.password, saltRounds);
 
       // save the user to the database
-      return this.usersRepository.save(user);
+      return this.userRepository.save(user);
     } catch (error) {
       console.error('Error creating user: ', error);
       throw new Error('User creation failed');
@@ -34,11 +34,11 @@ export class UserService {
   }
 
   findAll() {
-    return this.usersRepository.find();
+    return this.userRepository.find();
   }
 
   findOne(email: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { email: email } });
+    return this.userRepository.findOne({ where: { email: email } });
   }
 
   // public update(id: number, _updateUserDto: UpdateUserDto) {
