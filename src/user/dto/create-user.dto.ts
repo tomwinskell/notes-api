@@ -1,11 +1,9 @@
-import { IsEmail, IsNotEmpty, Matches, MaxLength } from 'class-validator';
+import { IsEmail, Matches, IsOptional, IsString } from 'class-validator';
 
 const regExp =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
 
 export class CreateUserDto {
-  @IsNotEmpty()
-  @MaxLength(40)
   @IsEmail({}, { message: 'Please provide a valid email' })
   email: string;
 
@@ -17,4 +15,8 @@ export class CreateUserDto {
     and one special character.`,
   })
   password: string;
+
+  @IsOptional()
+  @IsString()
+  refreshToken?: string | null;
 }

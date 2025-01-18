@@ -5,9 +5,12 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 40, unique: true })
+  @Column({ unique: true })
   email: string;
 
-  @Column({ type: 'varchar' })
+  @Column()
   password: string;
+
+  @Column({ nullable: true })
+  refreshToken: string | null;
 }
