@@ -42,7 +42,7 @@ export class UserController {
   }
 
   @Patch('update')
-  partialUpdate(@Body() updateUserDto: UpdateUserDto) {
+  update(@Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(updateUserDto);
   }
 }
