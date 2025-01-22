@@ -18,30 +18,40 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() signInDto: Record<string, any>) {
-    const { email, password } = signInDto;
+  async login(@Body() loginDto: { email: string; password: string }) {
+    const { email, password } = loginDto;
     const user = await this.authService.validateUser(email, password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    // user has id, email
     return await this.authService.generateTokens(user);
   }
 
   @Post('refresh')
-  async refresh(@Body('userId') userId: number) {
-    // validate refresh token for specified userId
-    const payload = await this.authService.validateRefreshToken(userId);
-    if (!payload) {
-      throw new UnauthorizedException('Unauthorized, unable to validate token');
+  async refresh(@Body() accessToken: string) {
+    try {
+      // verify access token (ignoring expiry) to get userId
+      const decoded = await this.authService.validateToken(accessToken, true);
+      const { id, email } = decoded;
+      if (!decoded) {
+        throw new UnauthorizedException('Invalid access token');
+      }
+
+      // validate refresh token for specified userId
+      const payload = await this.authService.validateRefreshToken(id);
+      if (!payload) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      // generate new access token and return to client
+      return await this.authService.generateTokens(payload);
+    } catch (error) {
+      throw new UnauthorizedException(
+        'auth.controller: POST /refresh error: ',
+        error,
+      );
     }
-    // generate new access token and return to client
-    return await this.authService.generateTokens(payload);
   }
 
   @Get('profile')
-  getProfile(@Request() req) { 
+  getProfile(@Request() req) {
     return req.user;
   }
 }

@@ -13,21 +13,36 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async validateUser(email: string, inputPassword: string): Promise<any> {
-    const user = await this.userService.findOne(email);
-
-    if (user && (await bcrypt.compare(inputPassword, user.password))) {
-      const { password, refreshToken, ...result } = user;
-      return result;
+  async validateUser(
+    inputEmail: string,
+    inputPassword: string,
+  ): Promise<{ id: number; email: string }> {
+    try {
+      const user = await this.userService.findOne(inputEmail);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+      const passwordIsMatch = await bcrypt.compare(
+        inputPassword,
+        user.password,
+      );
+      if (!passwordIsMatch) {
+        throw new UnauthorizedException('Incorrect password');
+      }
+      const { id, email } = user;
+      return { id, email };
+    } catch (error) {
+      throw new UnauthorizedException(
+        'auth.service: validateUser error:',
+        error,
+      );
     }
-    return null;
   }
 
-  async generateTokens(user: { id: number; email: string }) {
-    const { id, email } = user;
-    const payload = { id, email };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+  async generateTokens(user: { id: number; email: string }): Promise<string> {
+    const { id } = user;
+    const accessToken = this.jwtService.sign(user, { expiresIn: '15m' });
+    const refreshToken = this.jwtService.sign(user, { expiresIn: '7d' });
 
     // TODO: only update refreshToken if expired
     await this.userService.update({
@@ -37,7 +52,9 @@ export class AuthService {
     return accessToken;
   }
 
-  async validateRefreshToken(id: number): Promise<any> {
+  async validateRefreshToken(
+    id: number,
+  ): Promise<{ id: number; email: string }> {
     try {
       const user = await this.userService.findOneById(id);
       if (!user) {
@@ -45,18 +62,28 @@ export class AuthService {
       }
       return await this.validateToken(user.refreshToken);
     } catch (error) {
-      throw new UnauthorizedException('Validate refresh token error:', error);
+      throw new UnauthorizedException(
+        'auth.service: validateRefreshToken error:',
+        error,
+      );
     }
   }
 
-  async validateToken(token: string): Promise<any> {
+  async validateToken(
+    token: string,
+    ignoreExpiration: boolean = false,
+  ): Promise<{ id: number; email: string }> {
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get<string>('JWT_SECRET'),
+        ignoreExpiration,
       });
       return payload;
     } catch (error) {
-      throw new UnauthorizedException('Validate token error:', error);
+      throw new UnauthorizedException(
+        'auth.service: validateToken error:',
+        error,
+      );
     }
   }
 }

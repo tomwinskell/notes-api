@@ -30,13 +30,17 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    console.log(request.headers);
-    const token = this.extractTokenFromHeader(request);
-    if (!token) {
-      throw new UnauthorizedException('Unauthorized, no token');
-    }
+
     try {
+
+      const token = this.extractTokenFromHeader(request);
+
+      if (!token) {
+        throw new UnauthorizedException('Unauthorized, no token');
+      }
+
       const payload = await this.authService.validateToken(token);
+
       if (!payload) {
         throw new UnauthorizedException(
           'Unauthorized, unable to validate token',
@@ -44,13 +48,14 @@ export class AuthGuard implements CanActivate {
       }
 
       request['user'] = payload;
-    } catch {
-      throw new UnauthorizedException();
+
+    } catch (error) {
+      throw new UnauthorizedException('auth.guard error: ', error);
     }
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
+  extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
