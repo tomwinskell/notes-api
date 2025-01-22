@@ -3,7 +3,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-// Removed UserModule and User imports due to errors
 import { AuthModule } from './auth/auth.module';
 import typeorm from './config/typeorm.config';
 import { UserModule } from './user/user.module';

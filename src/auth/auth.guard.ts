@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'src/public';
 import { AuthService } from './auth.service';
+import { error } from 'console';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -32,31 +33,31 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     try {
-
       const token = this.extractTokenFromHeader(request);
 
       if (!token) {
-        throw new UnauthorizedException('Unauthorized, no token');
+        throw new Error('Unauthorized, no token');
       }
 
       const payload = await this.authService.validateToken(token);
 
       if (!payload) {
-        throw new UnauthorizedException(
-          'Unauthorized, unable to validate token',
-        );
+        throw new Error('Unauthorized, unable to validate token');
       }
 
       request['user'] = payload;
-
     } catch (error) {
-      throw new UnauthorizedException('auth.guard error: ', error);
+      throw new UnauthorizedException(
+        `auth.guard error: ${error.message}`,
+        error,
+      );
     }
     return true;
   }
 
   extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    console.log(request.headers.authorization);
     return type === 'Bearer' ? token : undefined;
   }
 }

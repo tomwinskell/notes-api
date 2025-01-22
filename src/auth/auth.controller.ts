@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from 'src/public';
+import { access } from 'fs';
 
 @Controller('auth')
 export class AuthController {
@@ -24,27 +25,33 @@ export class AuthController {
     return await this.authService.generateTokens(user);
   }
 
+  @Public()
   @Post('refresh')
-  async refresh(@Body() accessToken: string) {
+  async refresh(@Body() refreshDto: { accessToken: string }) {
     try {
       // verify access token (ignoring expiry) to get userId
-      const decoded = await this.authService.validateToken(accessToken, true);
-      const { id, email } = decoded;
+      const decoded = await this.authService.validateToken(
+        refreshDto.accessToken,
+        true,
+      );
+
+      const { id } = decoded;
       if (!decoded) {
-        throw new UnauthorizedException('Invalid access token');
+        throw new Error('Invalid access token');
       }
 
       // validate refresh token for specified userId
       const payload = await this.authService.validateRefreshToken(id);
       if (!payload) {
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new Error('Invalid refresh token');
       }
+      const { email } = payload;
 
       // generate new access token and return to client
-      return await this.authService.generateTokens(payload);
+      return await this.authService.generateTokens({ id, email });
     } catch (error) {
       throw new UnauthorizedException(
-        'auth.controller: POST /refresh error: ',
+        `auth.controller: POST /refresh error: ${error.message}`,
         error,
       );
     }
