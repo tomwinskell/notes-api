@@ -2,8 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -13,54 +13,57 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
-  async validateUser(
-    inputEmail: string,
-    inputPassword: string,
-  ): Promise<{ id: number; email: string }> {
+  async validateUser(loginDto: {
+    email: string;
+    password: string;
+  }): Promise<{ sub: number }> {
     try {
-      const user = await this.userService.findOne(inputEmail);
+      const user = await this.userService.findOne(loginDto.email);
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new Error('User not found');
       }
       const passwordIsMatch = await bcrypt.compare(
-        inputPassword,
+        loginDto.password,
         user.password,
       );
       if (!passwordIsMatch) {
-        throw new UnauthorizedException('Incorrect password');
+        throw new Error('Incorrect password');
       }
-      const { id, email } = user;
-      return { id, email };
+      return { sub: user.id };
     } catch (error) {
       throw new UnauthorizedException(
-        'auth.service: validateUser error:',
+        `auth.service: validateUser error: ${error.message}`,
         error,
       );
     }
   }
 
-  async generateTokens(user: { id: number; email: string }): Promise<string> {
-    const { id } = user;
-    const accessToken = this.jwtService.sign(user, { expiresIn: '15m' });
-    const refreshToken = this.jwtService.sign(user, { expiresIn: '7d' });
+  async generateTokens(payload: { sub: number }): Promise<string> {
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
 
-    // TODO: only update refreshToken if expired
-    await this.userService.update({
-      id,
-      refreshToken,
-    });
+    // check if user has valid refresh token in database
+    const isValidRefreshToken = await this.validateRefreshToken(payload.sub);
+
+    // if no valid refresh token generate and save new refresh token
+    if (!isValidRefreshToken) {
+      const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+      await this.userService.update({
+        id: payload.sub,
+        refreshToken,
+      });
+    }
+
     return accessToken;
   }
 
-  async validateRefreshToken(
-    id: number,
-  ): Promise<{ id: number; email: string }> {
+  async validateRefreshToken(id: number): Promise<{ sub: number }> {
     try {
       const user = await this.userService.findOneById(id);
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
-      return await this.validateToken(user.refreshToken);
+      const decoded = await this.validateToken(user.refreshToken);
+      return {sub: decoded.sub};
     } catch (error) {
       throw new UnauthorizedException(
         'auth.service: validateRefreshToken error:',
@@ -72,7 +75,7 @@ export class AuthService {
   async validateToken(
     token: string,
     ignoreExpiration: boolean = false,
-  ): Promise<{ id: number; email: string }> {
+  ): Promise<{ sub: number }> {
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get<string>('JWT_SECRET'),
@@ -85,5 +88,10 @@ export class AuthService {
         error,
       );
     }
+  }
+
+  extractFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
   }
 }

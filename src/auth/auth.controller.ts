@@ -2,53 +2,56 @@ import {
   Body,
   Controller,
   Get,
-  HttpCode,
-  HttpStatus,
   Post,
-  Request,
+  Req,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from 'src/public';
-import { access } from 'fs';
+import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
-  @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() loginDto: { email: string; password: string }) {
-    const { email, password } = loginDto;
-    const user = await this.authService.validateUser(email, password);
-    return await this.authService.generateTokens(user);
+  async login(
+    @Body() loginDto: { email: string; password: string },
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ message: string }> {
+    const user = await this.authService.validateUser(loginDto);
+    const accessToken = await this.authService.generateTokens(user);
+    response.setHeader('Authorization', `Bearer ${accessToken}`);
+    return { message: 'Login successful' };
   }
 
   @Public()
   @Post('refresh')
-  async refresh(@Body() refreshDto: { accessToken: string }) {
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ message: string }> {
     try {
-      // verify access token (ignoring expiry) to get userId
-      const decoded = await this.authService.validateToken(
-        refreshDto.accessToken,
-        true,
-      );
+      const accessToken = this.authService.extractFromHeader(request);
+      // verify access token (ignoring expiry) returns userId
+      const decoded = await this.authService.validateToken(accessToken, true);
 
-      const { id } = decoded;
       if (!decoded) {
         throw new Error('Invalid access token');
       }
 
       // validate refresh token for specified userId
-      const payload = await this.authService.validateRefreshToken(id);
+      const payload = await this.authService.validateRefreshToken(decoded.sub);
       if (!payload) {
         throw new Error('Invalid refresh token');
       }
-      const { email } = payload;
 
-      // generate new access token and return to client
-      return await this.authService.generateTokens({ id, email });
+      // generate new access token using userId and return as header in response
+      const newAccessToken = await this.authService.generateTokens(payload);
+      response.setHeader('Authorization', `Bearer ${newAccessToken}`);
+      return { message: 'Access token successfully renewed' };
     } catch (error) {
       throw new UnauthorizedException(
         `auth.controller: POST /refresh error: ${error.message}`,
@@ -58,7 +61,7 @@ export class AuthController {
   }
 
   @Get('profile')
-  getProfile(@Request() req) {
-    return req.user;
+  getProfile(@Req() request: Request) {
+    return request;
   }
 }
