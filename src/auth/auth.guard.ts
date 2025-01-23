@@ -7,7 +7,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'src/public';
 import { AuthService } from './auth.service';
 
@@ -21,6 +20,7 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // check request to see if @Public decorator applies
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -29,17 +29,16 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
+    // get the request data
     const request = context.switchToHttp().getRequest();
 
     try {
-      const token = this.extractTokenFromHeader(request);
-
+      const token = this.authService.extractFromHeader(request);
       if (!token) {
         throw new Error('Unauthorized, no token');
       }
 
       const payload = await this.authService.validateToken(token);
-
       if (!payload) {
         throw new Error('Unauthorized, unable to validate token');
       }
@@ -52,11 +51,5 @@ export class AuthGuard implements CanActivate {
       );
     }
     return true;
-  }
-
-  extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    console.log(request.headers.authorization);
-    return type === 'Bearer' ? token : undefined;
   }
 }

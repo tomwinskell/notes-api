@@ -10,6 +10,7 @@ import {
 import { AuthService } from './auth.service';
 import { Public } from 'src/public';
 import { Request, Response } from 'express';
+import { UserService } from 'src/user/user.service';
 
 @Controller('auth')
 export class AuthController {
@@ -60,8 +61,11 @@ export class AuthController {
     }
   }
 
-  @Get('profile')
-  getProfile(@Req() request: Request) {
-    return request;
+  @Public()
+  @Get('v')
+  async validateAccess(@Req() request: Request): Promise<{ valid: boolean }> {
+    const token = this.authService.extractFromHeader(request);
+    const payload = await this.authService.validateToken(token);
+    return { valid: payload ? true : false };
   }
 }
